@@ -2,16 +2,16 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// Helper function to generate JWT token
+// 🔐 Helper function to generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: "30d",
   });
 };
 
-// @desc Register new user
+// 📝 @desc Register new user
 // @route POST /api/users/signup
-exports.registerUser = async (req, res) => {
+exports.signupUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -43,22 +43,23 @@ exports.registerUser = async (req, res) => {
       res.status(400).json({ message: "Invalid user data" });
     }
   } catch (err) {
-    console.error(err.message);
+    console.error("Signup Error:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// @desc Login user
+// 🔑 @desc Login user
 // @route POST /api/users/login
 exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Check user existence
     const user = await User.findOne({ email });
     if (!user)
       return res.status(400).json({ message: "Invalid email or password" });
 
-    // Compare password
+    // Validate password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(400).json({ message: "Invalid email or password" });
@@ -71,12 +72,12 @@ exports.loginUser = async (req, res) => {
       token: generateToken(user.id),
     });
   } catch (err) {
-    console.error(err.message);
+    console.error("Login Error:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// @desc Get user profile
+// 👤 @desc Get user profile
 // @route GET /api/users/profile
 // @access Private
 exports.getUserProfile = async (req, res) => {
@@ -85,11 +86,12 @@ exports.getUserProfile = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   } catch (err) {
+    console.error("Get Profile Error:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// @desc Update user profile
+// ✏️ @desc Update user profile
 // @route PUT /api/users/profile
 // @access Private
 exports.updateUserProfile = async (req, res) => {
@@ -100,13 +102,14 @@ exports.updateUserProfile = async (req, res) => {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
 
-      // Hash new password if provided
+      // If password is provided, hash it
       if (req.body.password) {
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(req.body.password, salt);
       }
 
       const updatedUser = await user.save();
+
       res.json({
         _id: updatedUser.id,
         name: updatedUser.name,
@@ -117,6 +120,7 @@ exports.updateUserProfile = async (req, res) => {
       res.status(404).json({ message: "User not found" });
     }
   } catch (err) {
+    console.error("Update Profile Error:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
