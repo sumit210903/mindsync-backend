@@ -1,17 +1,22 @@
+// backend/server.js
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const connectDB = require("./config/db");
-const userRoutes = require("./routes/userRoutes");
 const path = require("path");
 
-// Initialize environment variables
+// ✅ Load environment variables
 dotenv.config();
 
-// Connect to MongoDB
+// ✅ Import MongoDB connection
+const connectDB = require("./config/db_connect");
+
+// ✅ Import routes
+const userRoutes = require("./routes/userRoutes");
+
+// ✅ Connect to MongoDB
 connectDB();
 
-// Initialize Express app
+// ✅ Initialize Express app
 const app = express();
 
 // ✅ CORS setup – allow frontend requests
@@ -19,7 +24,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5500", // local dev
-      "https://mindsync-frontend.onrender.com", // your deployed frontend
+      "https://mindsync-frontend.onrender.com", // deployed frontend
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
@@ -30,10 +35,10 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Static folder for profile images (if saved locally)
+// ✅ Serve static files (e.g., uploads folder)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ✅ Routes
+// ✅ API routes
 app.use("/api/users", userRoutes);
 
 // ✅ Default route
