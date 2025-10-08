@@ -1,30 +1,59 @@
-// routes/userRoutes.js
 const express = require("express");
 const {
   signupUser,
   loginUser,
   getUserProfile,
   updateUserProfile,
+  setupUserProfile,
 } = require("../controllers/userController");
+
 const protect = require("../middleware/Auth");
+const upload = require("../middleware/uploadMiddleware"); // Middleware for image upload
 
 const router = express.Router();
 
-// ✅ POST: Register a new user
+/**
+ * @route   POST /api/users/signup
+ * @desc    Register a new user
+ * @access  Public
+ */
 router.post("/signup", signupUser);
 
-// ✅ POST: Login user and return token
+/**
+ * @route   POST /api/users/login
+ * @desc    Authenticate user and get token
+ * @access  Public
+ */
 router.post("/login", loginUser);
 
-// ✅ GET: Fetch user profile (requires authentication)
+/**
+ * @route   GET /api/users/profile
+ * @desc    Get logged-in user's profile
+ * @access  Private
+ */
 router.get("/profile", protect, getUserProfile);
 
-// ✅ PUT: Update user profile (requires authentication)
+/**
+ * @route   PUT /api/users/profile
+ * @desc    Update user's profile details (without image)
+ * @access  Private
+ */
 router.put("/profile", protect, updateUserProfile);
 
-// ✅ Health check route (optional)
+/**
+ * @route   POST /api/users/profile-setup
+ * @desc    Initial or detailed profile setup (with image upload)
+ * @access  Private
+ */
+router.post("/profile-setup", protect, upload.single("profilePic"), setupUserProfile);
+
+/**
+ * @route   GET /api/users
+ * @desc    Health check for user routes
+ * @access  Public
+ */
 router.get("/", (req, res) => {
-  res.json({ message: "🚀 User routes are working fine!" });
+  res.status(200).json({ message: "🚀 User routes are working fine!" });
 });
 
 module.exports = router;

@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
+    // 👤 Basic Account Info
     name: {
       type: String,
       required: [true, "Name is required"],
@@ -19,13 +20,48 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: 6,
-      select: false, // hides password by default in queries
+      select: false, // hides password in queries unless explicitly selected
+    },
+
+    // 🌿 Extended Profile Fields
+    age: {
+      type: Number,
+      min: [0, "Age cannot be negative"],
+      max: [120, "Please enter a valid age"],
+      default: null,
+    },
+    gender: {
+      type: String,
+      enum: ["Male", "Female", "Other"],
+      default: "Other",
+    },
+    goal: {
+      type: String,
+      trim: true,
+      maxlength: [100, "Goal cannot exceed 100 characters"],
+      default: "",
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: [300, "Bio cannot exceed 300 characters"],
+      default: "",
+    },
+    profilePic: {
+      type: String, // can store a base64 string, local URL, or cloud URL
+      default: "",
+    },
+
+    // ⚡ Optional future enhancements
+    isProfileComplete: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }
 );
 
-// 🔹 Hash password before saving
+// 🧠 Hash password before saving (if modified)
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   try {
@@ -37,9 +73,17 @@ userSchema.pre("save", async function (next) {
   }
 });
 
-// 🔹 Compare entered password with stored hash
+// 🔑 Compare entered password with stored hash
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// ✅ Hide sensitive fields in responses
+userSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password; // never send password to frontend
+  delete obj.__v; // optional, cleans responses
+  return obj;
 };
 
 module.exports = mongoose.model("User", userSchema);
