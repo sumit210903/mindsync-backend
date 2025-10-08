@@ -8,7 +8,7 @@ const {
 } = require("../controllers/userController");
 
 const protect = require("../middleware/Auth");
-const upload = require("../middleware/uploadmiddleware"); // Middleware for image upload
+const upload = require("../middleware/uploadmiddleware"); // fixed naming
 
 const router = express.Router();
 
@@ -42,10 +42,15 @@ router.put("/profile", protect, updateUserProfile);
 
 /**
  * @route   POST /api/users/profile-setup
- * @desc    Initial or detailed profile setup (with image upload)
+ * @desc    Initial or detailed profile setup (with optional image upload)
  * @access  Private
  */
-router.post("/profile-setup", protect, upload.single("profilePic"), setupUserProfile);
+router.post(
+  "/profile-setup",
+  protect,
+  upload.single("profilePic"), // handle single image upload
+  setupUserProfile
+);
 
 /**
  * @route   GET /api/users

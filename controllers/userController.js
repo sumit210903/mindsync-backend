@@ -4,9 +4,10 @@ const jwt = require("jsonwebtoken");
 
 // 🔐 Helper function to generate JWT token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "30d", // you can adjust (e.g. "7d")
-  });
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET not defined in environment variables");
+  }
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
 
 // 📝 @desc Register new user
@@ -26,33 +27,24 @@ exports.signupUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // Hash password safely
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create new user
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-    });
+    const user = await User.create({ name, email, password: hashedPassword });
 
-    if (user) {
-      return res.status(201).json({
-        success: true,
-        message: "User registered successfully",
-        data: {
-          _id: user.id,
-          name: user.name,
-          email: user.email,
-          token: generateToken(user.id),
-        },
-      });
-    } else {
-      return res.status(400).json({ message: "Invalid user data" });
-    }
+    res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        token: generateToken(user._id),
+      },
+    });
   } catch (err) {
-    console.error("Signup Error:", err.message);
+    console.error("Signup Error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -70,27 +62,28 @@ exports.loginUser = async (req, res) => {
 
     // Check user existence
     const user = await User.findOne({ email });
-    if (!user)
-      return res.status(400).json({ message: "Invalid email or password" });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    // Validate password
+    if (!user.password) {
+      return res.status(500).json({ message: "Password not set for this user" });
+    }
+
+    // Validate password safely
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(400).json({ message: "Invalid email or password" });
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-    // Successful login
     res.json({
       success: true,
       message: "Login successful",
       data: {
-        _id: user.id,
+        _id: user._id,
         name: user.name,
         email: user.email,
-        token: generateToken(user.id),
+        token: generateToken(user._id),
       },
     });
   } catch (err) {
-    console.error("Login Error:", err.message);
+    console.error("Login Error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -103,12 +96,9 @@ exports.getUserProfile = async (req, res) => {
     const user = await User.findById(req.user.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.json({
-      success: true,
-      data: user,
-    });
+    res.json({ success: true, data: user });
   } catch (err) {
-    console.error("Get Profile Error:", err.message);
+    console.error("Get Profile Error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -119,34 +109,30 @@ exports.getUserProfile = async (req, res) => {
 exports.updateUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (user) {
-      user.name = req.body.name || user.name;
-      user.email = req.body.email || user.email;
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
 
-      // If password is provided, hash it
-      if (req.body.password) {
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(req.body.password, salt);
-      }
-
-      const updatedUser = await user.save();
-
-      res.json({
-        success: true,
-        message: "Profile updated successfully",
-        data: {
-          _id: updatedUser.id,
-          name: updatedUser.name,
-          email: updatedUser.email,
-          token: generateToken(updatedUser.id), // reissue fresh token
-        },
-      });
-    } else {
-      res.status(404).json({ message: "User not found" });
+    // If password is provided, hash it
+    if (req.body.password) {
+      user.password = await bcrypt.hash(req.body.password, 10);
     }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      data: {
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        token: generateToken(updatedUser._id),
+      },
+    });
   } catch (err) {
-    console.error("Update Profile Error:", err.message);
+    console.error("Update Profile Error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -157,20 +143,17 @@ exports.updateUserProfile = async (req, res) => {
 exports.setupUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Save setup fields
     user.age = req.body.age || user.age;
     user.gender = req.body.gender || user.gender;
     user.goal = req.body.goal || user.goal;
     user.bio = req.body.bio || user.bio;
 
-    // If you want to save profilePic as a file or URL, handle upload middleware separately
     if (req.file) {
       user.profilePic = `/uploads/${req.file.filename}`;
     } else if (req.body.profilePic) {
-      user.profilePic = req.body.profilePic; // fallback
+      user.profilePic = req.body.profilePic;
     }
 
     const updatedUser = await user.save();
@@ -181,14 +164,14 @@ exports.setupUserProfile = async (req, res) => {
       data: updatedUser,
     });
   } catch (err) {
-    console.error("Profile Setup Error:", err.message);
+    console.error("Profile Setup Error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 // 🚪 @desc Logout user (optional for JWT - handled on client)
 // @route POST /api/users/logout
-// @access Private (but just clears token client-side)
+// @access Private
 exports.logoutUser = (req, res) => {
   res.json({ success: true, message: "Logged out successfully" });
 };
