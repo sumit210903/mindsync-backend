@@ -8,7 +8,7 @@ const {
 } = require("../controllers/userController");
 
 const protect = require("../middleware/Auth");
-const upload = require("../middleware/uploadMiddleware"); // Middleware for image upload
+const upload = require("../middleware/uploadmiddleware"); // Middleware for image upload
 
 const router = express.Router();
 
