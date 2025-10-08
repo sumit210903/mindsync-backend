@@ -25,6 +25,7 @@ app.use(
     origin: [
       "http://localhost:5500", // local dev
       "https://mindsync-frontend.onrender.com", // deployed frontend
+      "https://sumit210903.github.io", // GitHub Pages frontend
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
