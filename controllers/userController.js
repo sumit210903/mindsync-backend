@@ -1,177 +1,135 @@
 const User = require("../models/User");
-const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 
-// 🔐 Helper function to generate JWT token
+// ✅ Generate JWT token
 const generateToken = (id) => {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET not defined in environment variables");
-  }
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+if (!process.env.JWT_SECRET) {
+throw new Error("JWT_SECRET not defined in environment variables");
+}
+return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
 
-// 📝 @desc Register new user
-// @route POST /api/users/signup
-// @access Public
+// 🧩 SIGNUP USER → redirect to profile setup
 exports.signupUser = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
+try {
+const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "Please provide all fields" });
-    }
+```
+if (!name || !email || !password)
+  return res.status(400).json({ message: "Please fill all fields" });
 
-    // Check if user already exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
-    }
+const userExists = await User.findOne({ email });
+if (userExists)
+  return res.status(400).json({ message: "User already exists" });
 
-    // Hash password safely
-    const hashedPassword = await bcrypt.hash(password, 10);
+const hashedPassword = await bcrypt.hash(password, 10);
+const user = await User.create({ name, email, password: hashedPassword });
 
-    // Create new user
-    const user = await User.create({ name, email, password: hashedPassword });
+res.status(201).json({
+  success: true,
+  message: "Signup successful. Redirecting to profile setup...",
+  token: generateToken(user._id),
+  redirect: "/profile-setup.html",
+});
+```
 
-    res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      data: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        token: generateToken(user._id),
-      },
-    });
-  } catch (err) {
-    console.error("Signup Error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+} catch (error) {
+console.error("Signup Error:", error);
+res.status(500).json({ message: "Server error during signup" });
+}
 };
 
-// 🔑 @desc Login user
-// @route POST /api/users/login
-// @access Public
+// 🔑 LOGIN USER → redirect to dashboard
 exports.loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+try {
+const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Please enter email and password" });
-    }
+```
+const user = await User.findOne({ email });
+if (!user) return res.status(400).json({ message: "User not found" });
 
-    // Check user existence
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+const isMatch = await bcrypt.compare(password, user.password);
+if (!isMatch)
+  return res.status(400).json({ message: "Invalid email or password" });
 
-    if (!user.password) {
-      return res.status(500).json({ message: "Password not set for this user" });
-    }
+res.status(200).json({
+  success: true,
+  message: "Login successful. Redirecting to dashboard...",
+  token: generateToken(user._id),
+  redirect: "/dashboard.html",
+});
+```
 
-    // Validate password safely
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
-
-    res.json({
-      success: true,
-      message: "Login successful",
-      data: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        token: generateToken(user._id),
-      },
-    });
-  } catch (err) {
-    console.error("Login Error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+} catch (error) {
+console.error("Login Error:", error);
+res.status(500).json({ message: "Server error during login" });
+}
 };
 
-// 👤 @desc Get user profile
-// @route GET /api/users/profile
-// @access Private
+// 🔍 VERIFY TOKEN
+exports.verifyToken = async (req, res) => {
+try {
+res.status(200).json({ success: true, message: "Token valid", user: req.user });
+} catch {
+res.status(401).json({ success: false, message: "Invalid token" });
+}
+};
+
+// 👤 GET USER PROFILE
 exports.getUserProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    res.json({ success: true, data: user });
-  } catch (err) {
-    console.error("Get Profile Error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+try {
+const user = await User.findById(req.user.id).select("-password");
+if (!user) return res.status(404).json({ message: "User not found" });
+res.json({ success: true, user });
+} catch (error) {
+console.error("Get Profile Error:", error);
+res.status(500).json({ message: "Error fetching profile" });
+}
 };
 
-// ✏️ @desc Update user profile
-// @route PUT /api/users/profile
-// @access Private
+// ✏️ UPDATE USER PROFILE
 exports.updateUserProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
-
-    // If password is provided, hash it
-    if (req.body.password) {
-      user.password = await bcrypt.hash(req.body.password, 10);
-    }
-
-    const updatedUser = await user.save();
-
-    res.json({
-      success: true,
-      message: "Profile updated successfully",
-      data: {
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        token: generateToken(updatedUser._id),
-      },
-    });
-  } catch (err) {
-    console.error("Update Profile Error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+try {
+const updatedUser = await User.findByIdAndUpdate(req.user.id, req.body, {
+new: true,
+}).select("-password");
+res.json({
+success: true,
+message: "Profile updated successfully",
+user: updatedUser,
+});
+} catch (error) {
+console.error("Update Profile Error:", error);
+res.status(500).json({ message: "Error updating profile" });
+}
 };
 
-// ✨ @desc Setup user profile (first time after signup)
-// @route POST /api/users/setup
-// @access Private
+// 🧾 SETUP PROFILE (after signup) → redirect to dashboard
 exports.setupUserProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+try {
+const { bio, location, phone } = req.body;
+const updateData = { bio, location, phone };
 
-    user.age = req.body.age || user.age;
-    user.gender = req.body.gender || user.gender;
-    user.goal = req.body.goal || user.goal;
-    user.bio = req.body.bio || user.bio;
+```
+if (req.file) {
+  updateData.profilePic = `/uploads/${req.file.filename}`;
+}
 
-    if (req.file) {
-      user.profilePic = `/uploads/${req.file.filename}`;
-    } else if (req.body.profilePic) {
-      user.profilePic = req.body.profilePic;
-    }
+const updatedUser = await User.findByIdAndUpdate(req.user.id, updateData, {
+  new: true,
+}).select("-password");
 
-    const updatedUser = await user.save();
+res.status(200).json({
+  success: true,
+  message: "Profile setup complete. Redirecting to dashboard...",
+  user: updatedUser,
+  redirect: "/dashboard.html",
+});
+```
 
-    res.json({
-      success: true,
-      message: "Profile setup completed successfully",
-      data: updatedUser,
-    });
-  } catch (err) {
-    console.error("Profile Setup Error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// 🚪 @desc Logout user (optional for JWT - handled on client)
-// @route POST /api/users/logout
-// @access Private
-exports.logoutUser = (req, res) => {
-  res.json({ success: true, message: "Logged out successfully" });
+} catch (error) {
+console.error("Setup Profile Error:", error);
+res.status(500).json({ message: "Server error during setup" });
+}
 };
