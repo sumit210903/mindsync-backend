@@ -19,24 +19,35 @@ connectDB();
 // ✅ Initialize Express app
 const app = express();
 
-// ✅ CORS setup – allow frontend requests
+// ✅ CORS setup – allow frontend requests (GitHub + Render + Local)
 app.use(
   cors({
     origin: [
       "http://localhost:5500", // local dev
-      "https://mindsync-frontend.onrender.com", // deployed frontend
+      "https://mindsync-frontend.onrender.com", // render frontend (if used)
       "https://sumit210903.github.io", // GitHub Pages frontend
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// ✅ Manual fallback CORS headers (for GitHub Pages)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  next();
+});
 
 // ✅ Parse incoming JSON and form data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Serve static files (e.g., uploads folder)
+// ✅ Serve static files (uploads, etc.)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ✅ API routes
@@ -47,7 +58,7 @@ app.get("/", (req, res) => {
   res.send("🌿 MindSync Backend API is running successfully!");
 });
 
-// ✅ Global error handling middleware
+// ✅ Global error handler
 app.use((err, req, res, next) => {
   console.error("Error:", err.message);
   res.status(err.statusCode || 500).json({
