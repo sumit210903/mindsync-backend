@@ -64,9 +64,7 @@ exports.loginUser = async (req, res) => {
 // 🔍 VERIFY TOKEN
 exports.verifyToken = async (req, res) => {
   try {
-    res
-      .status(200)
-      .json({ success: true, message: "Token valid", user: req.user });
+    res.status(200).json({ success: true, message: "Token valid", user: req.user });
   } catch {
     res.status(401).json({ success: false, message: "Invalid token" });
   }
@@ -87,9 +85,25 @@ exports.getUserProfile = async (req, res) => {
 // ✏️ UPDATE USER PROFILE
 exports.updateUserProfile = async (req, res) => {
   try {
-    const updatedUser = await User.findByIdAndUpdate(req.user.id, req.body, {
+    const { name, bio, location, phone, age, gender } = req.body;
+    const updateData = {};
+
+    // Only update fields that exist
+    if (name) updateData.name = name;
+    if (bio) updateData.bio = bio;
+    if (location) updateData.location = location;
+    if (phone) updateData.phone = phone;
+    if (age) updateData.age = age;
+    if (gender) updateData.gender = gender;
+
+    if (req.file) {
+      updateData.profilePic = `/uploads/${req.file.filename}`;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(req.user.id, updateData, {
       new: true,
     }).select("-password");
+
     res.json({
       success: true,
       message: "Profile updated successfully",
@@ -104,8 +118,8 @@ exports.updateUserProfile = async (req, res) => {
 // 🧾 SETUP PROFILE (after signup) → redirect to dashboard
 exports.setupUserProfile = async (req, res) => {
   try {
-    const { bio, location, phone } = req.body;
-    const updateData = { bio, location, phone };
+    const { bio, location, phone, age, gender } = req.body;
+    const updateData = { bio, location, phone, age, gender };
 
     if (req.file) {
       updateData.profilePic = `/uploads/${req.file.filename}`;

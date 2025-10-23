@@ -1,11 +1,11 @@
 const express = require("express");
 const {
-signupUser,
-loginUser,
-getUserProfile,
-updateUserProfile,
-setupUserProfile,
-verifyToken,
+  signupUser,
+  loginUser,
+  getUserProfile,
+  updateUserProfile,
+  setupUserProfile,
+  verifyToken,
 } = require("../controllers/userController");
 
 const protect = require("../middleware/Auth");
@@ -14,66 +14,59 @@ const upload = require("../middleware/uploadmiddleware");
 const router = express.Router();
 
 /**
-
-* @route   POST /api/users/signup
-* @desc    Register a new user
-* @access  Public
-  */
-  router.post("/signup", signupUser);
-
-/**
-
-* @route   POST /api/users/login
-* @desc    Authenticate user and get token
-* @access  Public
-  */
-  router.post("/login", loginUser);
+ * @route   POST /api/users/signup
+ * @desc    Register a new user
+ * @access  Public
+ */
+router.post("/signup", signupUser);
 
 /**
-
-* @route   GET /api/users/verify
-* @desc    Verify JWT token validity
-* @access  Private
-  */
-  router.get("/verify", protect, verifyToken);
-
-/**
-
-* @route   GET /api/users/profile
-* @desc    Get logged-in user's profile
-* @access  Private
-  */
-  router.get("/profile", protect, getUserProfile);
+ * @route   POST /api/users/login
+ * @desc    Authenticate user and get token
+ * @access  Public
+ */
+router.post("/login", loginUser);
 
 /**
-
-* @route   PUT /api/users/profile
-* @desc    Update user's profile details (without image)
-* @access  Private
-  */
-  router.put("/profile", protect, updateUserProfile);
+ * @route   GET /api/users/verify
+ * @desc    Verify JWT token validity
+ * @access  Private
+ */
+router.get("/verify", protect, verifyToken);
 
 /**
+ * @route   GET /api/users/profile
+ * @desc    Get logged-in user's profile
+ * @access  Private
+ */
+router.get("/profile", protect, getUserProfile);
 
-* @route   POST /api/users/profile-setup
-* @desc    Initial or detailed profile setup (with optional image upload)
-* @access  Private
-  */
-  router.post(
+/**
+ * @route   PUT /api/users/profile
+ * @desc    Update user's profile details (without image)
+ * @access  Private
+ */
+router.put("/profile", protect, updateUserProfile);
+
+/**
+ * @route   POST /api/users/profile-setup
+ * @desc    Initial or detailed profile setup (with optional image upload)
+ * @access  Private
+ */
+router.post(
   "/profile-setup",
   protect,
   upload.single("profilePic"),
   setupUserProfile
-  );
+);
 
 /**
-
-* @route   GET /api/users
-* @desc    Health check for user routes
-* @access  Public
-  */
-  router.get("/", (req, res) => {
+ * @route   GET /api/users
+ * @desc    Health check for user routes
+ * @access  Public
+ */
+router.get("/", (req, res) => {
   res.status(200).json({ message: "🚀 User routes are working fine!" });
-  });
+});
 
 module.exports = router;

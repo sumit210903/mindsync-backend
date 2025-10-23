@@ -32,8 +32,20 @@ const userSchema = new mongoose.Schema(
     },
     gender: {
       type: String,
-      enum: ["Male", "Female", "Other"],
-      default: "Other",
+      enum: ["Male", "Female", "Other", ""],
+      default: "",
+    },
+    phone: {
+      type: String,
+      trim: true,
+      match: [/^[0-9]{10}$/, "Please enter a valid 10-digit phone number"],
+      default: "",
+    },
+    location: {
+      type: String,
+      trim: true,
+      maxlength: [100, "Location cannot exceed 100 characters"],
+      default: "",
     },
     goal: {
       type: String,
@@ -48,11 +60,11 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
     profilePic: {
-      type: String, // can store a base64 string, local URL, or cloud URL
+      type: String, // local or cloud image path
       default: "",
     },
 
-    // ⚡ Optional future enhancements
+    // ⚡ Profile completion flag
     isProfileComplete: {
       type: Boolean,
       default: false,
@@ -81,8 +93,8 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 // ✅ Hide sensitive fields in responses
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
-  delete obj.password; // never send password to frontend
-  delete obj.__v; // optional, cleans responses
+  delete obj.password;
+  delete obj.__v;
   return obj;
 };
 

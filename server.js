@@ -20,22 +20,23 @@ connectDB();
 const app = express();
 
 // -------------------------------------------
-// ✅ CORS Configuration
+// ✅ CORS Configuration (allow GitHub Pages subpath too)
 // -------------------------------------------
 const allowedOrigins = [
-  "http://localhost:5500",                  // Local development
-  "https://mindsync-frontend.onrender.com", // Render frontend (if used)
-  "https://sumit210903.github.io",          // GitHub Pages frontend
+  "http://localhost:5500", // Local development
+  "https://mindsync-frontend.onrender.com", // Render frontend
+  "https://sumit210903.github.io", // GitHub Pages root
+  "https://sumit210903.github.io/mindsync-frontend", // GitHub Pages project path
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
+      if (!origin) return callback(null, true); // Allow no-origin (e.g., curl)
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       } else {
+        console.warn("❌ Blocked by CORS:", origin);
         return callback(new Error("Not allowed by CORS"));
       }
     },
@@ -56,6 +57,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // ✅ Serve static files (uploads, etc.)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// ✅ Logging helper (optional)
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
 
 // -------------------------------------------
 // ✅ API Routes
