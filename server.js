@@ -20,10 +20,11 @@ connectDB();
 const app = express();
 
 // -------------------------------------------
-// ✅ CORS Configuration (allow GitHub Pages subpath too)
+// ✅ CORS Configuration (Supports Local + Render + GitHub Pages)
 // -------------------------------------------
 const allowedOrigins = [
   "http://localhost:5500", // Local development
+  "http://127.0.0.1:5500",
   "https://mindsync-frontend.onrender.com", // Render frontend
   "https://sumit210903.github.io", // GitHub Pages root
   "https://sumit210903.github.io/mindsync-frontend", // GitHub Pages project path
@@ -32,12 +33,12 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // Allow no-origin (e.g., curl)
+      if (!origin) return callback(null, true); // Allow curl/postman/no-origin
       if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
+        callback(null, true);
       } else {
-        console.warn("❌ Blocked by CORS:", origin);
-        return callback(new Error("Not allowed by CORS"));
+        console.warn("🚫 CORS blocked origin:", origin);
+        callback(new Error("Not allowed by CORS"));
       }
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -55,12 +56,12 @@ app.options("*", cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Serve static files (uploads, etc.)
+// ✅ Serve static uploads (profile pictures, etc.)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ✅ Logging helper (optional)
+// ✅ Logging helper (for debugging)
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
+  console.log(`${req.method} ${req.originalUrl}`);
   next();
 });
 
@@ -70,20 +71,20 @@ app.use((req, res, next) => {
 app.use("/api/users", userRoutes);
 
 // -------------------------------------------
-// ✅ Default Route
+// ✅ Default Root Route
 // -------------------------------------------
 app.get("/", (req, res) => {
   res.send("🌿 MindSync Backend API is running successfully!");
 });
 
 // -------------------------------------------
-// ✅ Global Error Handler
+// ✅ Global Error Handler (Safety net)
 // -------------------------------------------
 app.use((err, req, res, next) => {
-  console.error("Error:", err.message);
+  console.error("🔥 Error caught:", err.message);
   res.status(err.statusCode || 500).json({
     success: false,
-    message: err.message || "Server Error",
+    message: err.message || "Internal Server Error",
   });
 });
 
@@ -91,6 +92,6 @@ app.use((err, req, res, next) => {
 // ✅ Start Server
 // -------------------------------------------
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});

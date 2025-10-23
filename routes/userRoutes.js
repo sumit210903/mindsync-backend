@@ -43,22 +43,17 @@ router.get("/profile", protect, getUserProfile);
 
 /**
  * @route   PUT /api/users/profile
- * @desc    Update user's profile details (without image)
+ * @desc    Update user's profile details (with optional image)
  * @access  Private
  */
-router.put("/profile", protect, updateUserProfile);
+router.put("/profile", protect, upload.single("profilePic"), updateUserProfile);
 
 /**
  * @route   POST /api/users/profile-setup
  * @desc    Initial or detailed profile setup (with optional image upload)
  * @access  Private
  */
-router.post(
-  "/profile-setup",
-  protect,
-  upload.single("profilePic"),
-  setupUserProfile
-);
+router.post("/profile-setup", protect, upload.single("profilePic"), setupUserProfile);
 
 /**
  * @route   GET /api/users

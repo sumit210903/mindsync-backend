@@ -64,7 +64,11 @@ exports.loginUser = async (req, res) => {
 // 🔍 VERIFY TOKEN
 exports.verifyToken = async (req, res) => {
   try {
-    res.status(200).json({ success: true, message: "Token valid", user: req.user });
+    res.status(200).json({
+      success: true,
+      message: "Token valid",
+      user: req.user,
+    });
   } catch {
     res.status(401).json({ success: false, message: "Invalid token" });
   }
@@ -75,6 +79,14 @@ exports.getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    // 🪄 Convert relative path to full URL
+    const BASE_URL =
+      process.env.BASE_URL || "https://mindsync-backend-c7v9.onrender.com";
+    if (user.profilePic && !user.profilePic.startsWith("http")) {
+      user.profilePic = `${BASE_URL}${user.profilePic}`;
+    }
+
     res.json({ success: true, user });
   } catch (error) {
     console.error("Get Profile Error:", error);
@@ -85,16 +97,16 @@ exports.getUserProfile = async (req, res) => {
 // ✏️ UPDATE USER PROFILE
 exports.updateUserProfile = async (req, res) => {
   try {
-    const { name, bio, location, phone, age, gender } = req.body;
+    const { name, bio, location, phone, age, gender, goal } = req.body;
     const updateData = {};
 
-    // Only update fields that exist
     if (name) updateData.name = name;
     if (bio) updateData.bio = bio;
     if (location) updateData.location = location;
     if (phone) updateData.phone = phone;
     if (age) updateData.age = age;
     if (gender) updateData.gender = gender;
+    if (goal) updateData.goal = goal;
 
     if (req.file) {
       updateData.profilePic = `/uploads/${req.file.filename}`;
@@ -103,6 +115,15 @@ exports.updateUserProfile = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(req.user.id, updateData, {
       new: true,
     }).select("-password");
+
+    if (!updatedUser)
+      return res.status(404).json({ message: "User not found" });
+
+    const BASE_URL =
+      process.env.BASE_URL || "https://mindsync-backend-c7v9.onrender.com";
+    if (updatedUser.profilePic && !updatedUser.profilePic.startsWith("http")) {
+      updatedUser.profilePic = `${BASE_URL}${updatedUser.profilePic}`;
+    }
 
     res.json({
       success: true,
@@ -118,8 +139,8 @@ exports.updateUserProfile = async (req, res) => {
 // 🧾 SETUP PROFILE (after signup) → redirect to dashboard
 exports.setupUserProfile = async (req, res) => {
   try {
-    const { bio, location, phone, age, gender } = req.body;
-    const updateData = { bio, location, phone, age, gender };
+    const { bio, location, phone, age, gender, goal } = req.body;
+    const updateData = { bio, location, phone, age, gender, goal };
 
     if (req.file) {
       updateData.profilePic = `/uploads/${req.file.filename}`;
@@ -128,6 +149,15 @@ exports.setupUserProfile = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(req.user.id, updateData, {
       new: true,
     }).select("-password");
+
+    if (!updatedUser)
+      return res.status(404).json({ message: "User not found" });
+
+    const BASE_URL =
+      process.env.BASE_URL || "https://mindsync-backend-c7v9.onrender.com";
+    if (updatedUser.profilePic && !updatedUser.profilePic.startsWith("http")) {
+      updatedUser.profilePic = `${BASE_URL}${updatedUser.profilePic}`;
+    }
 
     res.status(200).json({
       success: true,
