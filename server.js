@@ -12,6 +12,7 @@ const connectDB = require("./config/db_connect");
 
 // ✅ Import routes
 const userRoutes = require("./routes/userRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes"); // ✅ Dashboard route
 
 // ✅ Connect to MongoDB
 connectDB();
@@ -23,17 +24,17 @@ const app = express();
 // ✅ CORS Configuration (Supports Local + Render + GitHub Pages)
 // -------------------------------------------
 const allowedOrigins = [
-  "http://localhost:5500", // Local development
+  "http://localhost:5500", // local dev
   "http://127.0.0.1:5500",
-  "https://mindsync-frontend.onrender.com", // Render frontend
-  "https://sumit210903.github.io", // GitHub Pages root
-  "https://sumit210903.github.io/mindsync-frontend", // GitHub Pages project path
+  "https://mindsync-frontend.onrender.com", // deployed frontend
+  "https://sumit210903.github.io",
+  "https://sumit210903.github.io/mindsync-frontend",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // Allow curl/postman/no-origin
+      if (!origin) return callback(null, true); // allow Postman/no-origin
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -56,10 +57,10 @@ app.options("*", cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Serve static uploads (profile pictures, etc.)
+// ✅ Serve static uploads (for profile pictures, etc.)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ✅ Logging helper (for debugging)
+// ✅ Request Logger (for debugging)
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.originalUrl}`);
   next();
@@ -69,6 +70,7 @@ app.use((req, res, next) => {
 // ✅ API Routes
 // -------------------------------------------
 app.use("/api/users", userRoutes);
+app.use("/api/dashboard", dashboardRoutes); // ✅ Add Wellness Dashboard API
 
 // -------------------------------------------
 // ✅ Default Root Route
