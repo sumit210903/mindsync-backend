@@ -1,6 +1,6 @@
 const express = require("express");
 const { getUserDashboard } = require("../controllers/dashboardController");
-const { Auth } = require("../middleware/Auth"); // ✅ ensure named export if using destructuring
+const protect = require("../middleware/Auth"); // ✅ FIXED: default import
 
 const router = express.Router();
 
@@ -9,6 +9,6 @@ const router = express.Router();
  * @desc    Get authenticated user's wellness dashboard data
  * @access  Private
  */
-router.get("/", Auth, getUserDashboard);
+router.get("/", protect, getUserDashboard);
 
 module.exports = router;
