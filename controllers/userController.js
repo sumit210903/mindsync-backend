@@ -26,8 +26,8 @@ exports.signupUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashedPassword });
+    // ✅ Let Mongoose pre-save hook hash the password automatically
+    const user = await User.create({ name, email, password });
 
     console.log("✅ New user created:", user.email);
 
@@ -48,29 +48,25 @@ exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log("🧠 Login request received:", { email, passwordReceived: !!password });
+    console.log("🧠 Login request received:", {
+      email,
+      passwordReceived: !!password,
+    });
 
-    // Validate input
+    // ✅ Validate input
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
-    // Find user
-    const user = await User.findOne({ email });
+    // ✅ Explicitly include password since it's select: false in schema
+    const user = await User.findOne({ email }).select("+password");
     if (!user) {
       console.warn("⚠️ User not found for email:", email);
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // Ensure password exists in DB
-    if (!user.password) {
-      console.error("❌ Missing password field in DB record for:", email);
-      return res.status(500).json({ message: "User password not found in database" });
-    }
-
-    // Compare passwords
+    // ✅ Compare password
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       console.warn("⚠️ Invalid password for:", email);
       return res.status(400).json({ message: "Invalid email or password" });
@@ -115,6 +111,7 @@ exports.getUserProfile = async (req, res) => {
     const BASE_URL =
       process.env.BASE_URL || "https://mindsync-backend-c7v9.onrender.com";
 
+    // ✅ Convert relative path to absolute URL
     if (user.profilePic && !user.profilePic.startsWith("http")) {
       user.profilePic = `${BASE_URL}${user.profilePic}`;
     }

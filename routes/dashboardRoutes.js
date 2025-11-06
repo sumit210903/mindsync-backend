@@ -1,12 +1,14 @@
-// routes/dashboardRoutes.js
 const express = require("express");
 const { getUserDashboard } = require("../controllers/dashboardController");
-const { Auth } = require("../middleware/Auth");
+const protect = require("../middleware/Auth");
 
 const router = express.Router();
 
-// ✅ Route: GET /api/dashboard
-// Protected route — fetches the logged-in user's dashboard data
-router.get("/", Auth, getUserDashboard);
+/**
+ * @route   GET /api/dashboard
+ * @desc    Get authenticated user's wellness dashboard data
+ * @access  Private
+ */
+router.get("/", protect, getUserDashboard);
 
 module.exports = router;

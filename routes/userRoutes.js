@@ -43,25 +43,38 @@ router.get("/profile", protect, getUserProfile);
 
 /**
  * @route   PUT /api/users/profile
- * @desc    Update user's profile details (with optional image)
+ * @desc    Update user's profile details (with optional image upload)
  * @access  Private
  */
-router.put("/profile", protect, upload.single("profilePic"), updateUserProfile);
+router.put(
+  "/profile",
+  protect,
+  upload.single("profilePic"),
+  updateUserProfile
+);
 
 /**
  * @route   POST /api/users/profile-setup
- * @desc    Initial or detailed profile setup (with optional image upload)
+ * @desc    Initial or detailed profile setup (after signup)
  * @access  Private
  */
-router.post("/profile-setup", protect, upload.single("profilePic"), setupUserProfile);
+router.post(
+  "/profile-setup",
+  protect,
+  upload.single("profilePic"),
+  setupUserProfile
+);
 
 /**
  * @route   GET /api/users
- * @desc    Health check for user routes
+ * @desc    Health check endpoint for user routes
  * @access  Public
  */
 router.get("/", (req, res) => {
-  res.status(200).json({ message: "🚀 User routes are working fine!" });
+  res.status(200).json({
+    success: true,
+    message: "🚀 User routes are working fine!",
+  });
 });
 
 module.exports = router;

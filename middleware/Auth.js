@@ -5,33 +5,65 @@ const protect = async (req, res, next) => {
   try {
     let token;
 
-    // Check if authorization header exists and starts with Bearer
+    // ✅ 1️⃣ Check Authorization Header for Bearer Token
     if (
       req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
+      req.headers.authorization.startsWith("Bearer ")
     ) {
       token = req.headers.authorization.split(" ")[1];
     }
 
-    if (!token) {
-      return res.status(401).json({ message: "Not authorized, no token" });
+    // ✅ 2️⃣ Fallback: Allow token from cookies (optional if you use cookies)
+    if (!token && req.cookies?.token) {
+      token = req.cookies.token;
     }
 
-    // Verify token
+    // 🚫 No token found
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized, token missing",
+      });
+    }
+
+    // ✅ 3️⃣ Verify JWT
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Fetch user and exclude password
+    // ✅ 4️⃣ Fetch user from DB (exclude password)
     const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
-      return res.status(401).json({ message: "Not authorized, user not found" });
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized, user not found",
+      });
     }
 
+    // ✅ 5️⃣ Attach user to request object
     req.user = user;
+
+    // Continue to next middleware
     next();
   } catch (error) {
-    console.error("Auth middleware error:", error.message);
-    return res.status(401).json({ message: "Not authorized, token failed" });
+    console.error("❌ Auth Middleware Error:", error);
+
+    // Handle JWT-specific errors more clearly
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        success: false,
+        message: "Token expired, please log in again",
+      });
+    } else if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token, please log in again",
+      });
+    }
+
+    return res.status(401).json({
+      success: false,
+      message: "Not authorized, token verification failed",
+    });
   }
 };
 

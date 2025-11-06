@@ -1,21 +1,25 @@
-// controllers/dashboardController.js
-const User = require("../models/User"); // ✅ CommonJS import (consistent with server.js)
+const User = require("../models/User");
 
-// ✅ Fetch user-specific wellness dashboard data
+/**
+ * @desc    Fetch authenticated user's wellness dashboard data
+ * @route   GET /api/dashboard
+ * @access  Private
+ */
 const getUserDashboard = async (req, res) => {
   try {
-    // ✅ Check if user is authenticated
+    // ✅ Ensure the user is authenticated via middleware
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized access. Please log in.",
+        message: "Unauthorized access. Please log in again.",
       });
     }
 
     const userId = req.user.id;
-    const user = await User.findById(userId).select("name profilePic email");
 
-    // ✅ Handle user not found
+    // ✅ Fetch user info (minimal fields)
+    const user = await User.findById(userId).select("name email profilePic goal");
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -23,35 +27,46 @@ const getUserDashboard = async (req, res) => {
       });
     }
 
-    // ✅ Mock wellness tracking data — replace with actual DB data later
+    // ✅ Construct BASE_URL for consistent image path handling
+    const BASE_URL =
+      process.env.BASE_URL || "https://mindsync-backend-c7v9.onrender.com";
+
+    // ✅ Ensure profilePic is a full URL
+    const profilePic =
+      user.profilePic && !user.profilePic.startsWith("http")
+        ? `${BASE_URL}${user.profilePic}`
+        : user.profilePic || `${BASE_URL}/uploads/default-avatar.png`;
+
+    // ✅ Mock wellness data (replace later with dynamic DB data)
     const dashboardData = {
       userInfo: {
         name: user.name,
         email: user.email,
-        profilePic: user.profilePic || "/uploads/default-avatar.png",
+        profilePic,
+        goal: user.goal || "Stay healthy & mindful",
       },
       fitness: {
-        steps: [5000, 7000, 8000, 6500, 9000], // example step counts
-        workoutMinutes: [30, 45, 50, 60, 40], // example exercise duration
+        steps: [5000, 7000, 8000, 6500, 9000],
+        workoutMinutes: [30, 45, 50, 60, 40],
       },
       nutrition: {
-        calories: [2000, 1800, 2200, 2100, 1900], // daily calorie intake
-        waterIntake: [2, 2.5, 3, 2.8, 2.2], // liters per day
+        calories: [2000, 1800, 2200, 2100, 1900],
+        waterIntake: [2, 2.5, 3, 2.8, 2.2],
       },
       mentalHealth: {
-        moodRatings: [7, 8, 6, 9, 8], // scale 1–10
+        moodRatings: [7, 8, 6, 9, 8],
         meditationMinutes: [10, 15, 20, 10, 12],
       },
     };
 
-    // ✅ Respond with dashboard data
+    // ✅ Send successful response
     res.status(200).json({
       success: true,
       message: "Dashboard data fetched successfully",
       data: dashboardData,
     });
   } catch (error) {
-    console.error("❌ Dashboard fetch error:", error);
+    console.error("❌ Dashboard Fetch Error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch dashboard data",
