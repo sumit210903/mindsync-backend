@@ -3,85 +3,63 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
-
-// ✅ Load environment variables
-dotenv.config();
-
-// ✅ Import MongoDB connection
 const connectDB = require("./config/db_connect");
-
-// ✅ Import routes
 const userRoutes = require("./routes/userRoutes");
-const dashboardRoutes = require("./routes/dashboardRoutes"); // ✅ Dashboard route
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
-// ✅ Connect to MongoDB
+dotenv.config();
 connectDB();
 
-// ✅ Initialize Express app
 const app = express();
 
-// -------------------------------------------
-// ✅ CORS Configuration (Supports Local + Render + GitHub Pages)
-// -------------------------------------------
+// ✅ Middleware first
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+// ✅ Allowed origins
 const allowedOrigins = [
-  "http://localhost:5500", // local dev
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5500",
   "http://127.0.0.1:5500",
-  "https://mindsync-frontend.onrender.com", // deployed frontend
+  "https://mindsync-frontend.onrender.com",
   "https://sumit210903.github.io",
   "https://sumit210903.github.io/mindsync-frontend",
 ];
 
+// ✅ CORS
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow Postman/no-origin
-      if (allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         console.warn("🚫 CORS blocked origin:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
   })
 );
 
-// ✅ Handle preflight (OPTIONS) requests globally
-app.options("*", cors());
-
-// -------------------------------------------
-// ✅ Middleware
-// -------------------------------------------
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// ✅ Serve static uploads (for profile pictures, etc.)
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// ✅ Request Logger (for debugging)
+// ✅ Logger
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.originalUrl}`);
   next();
 });
 
-// -------------------------------------------
-// ✅ API Routes
-// -------------------------------------------
+// ✅ Routes
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/users", userRoutes);
-app.use("/api/dashboard", dashboardRoutes); // ✅ Add Wellness Dashboard API
+app.use("/api/dashboard", dashboardRoutes);
 
-// -------------------------------------------
-// ✅ Default Root Route
-// -------------------------------------------
 app.get("/", (req, res) => {
   res.send("🌿 MindSync Backend API is running successfully!");
 });
 
-// -------------------------------------------
-// ✅ Global Error Handler (Safety net)
-// -------------------------------------------
+// ✅ Global Error Handler
 app.use((err, req, res, next) => {
   console.error("🔥 Error caught:", err.message);
   res.status(err.statusCode || 500).json({
@@ -90,10 +68,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// -------------------------------------------
 // ✅ Start Server
-// -------------------------------------------
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

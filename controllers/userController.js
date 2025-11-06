@@ -1,3 +1,5 @@
+// backend/controllers/userController.js
+
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
@@ -15,15 +17,19 @@ exports.signupUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password)
+    if (!name || !email || !password) {
       return res.status(400).json({ message: "Please fill all fields" });
+    }
 
     const userExists = await User.findOne({ email });
-    if (userExists)
+    if (userExists) {
       return res.status(400).json({ message: "User already exists" });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, password: hashedPassword });
+
+    console.log("✅ New user created:", user.email);
 
     res.status(201).json({
       success: true,
@@ -42,12 +48,35 @@ exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found" });
+    console.log("🧠 Login request received:", { email, passwordReceived: !!password });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      console.warn("⚠️ User not found for email:", email);
       return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    // Ensure password exists in DB
+    if (!user.password) {
+      console.error("❌ Missing password field in DB record for:", email);
+      return res.status(500).json({ message: "User password not found in database" });
+    }
+
+    // Compare passwords
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      console.warn("⚠️ Invalid password for:", email);
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    console.log("✅ Login successful:", email);
 
     res.status(200).json({
       success: true,
@@ -56,7 +85,7 @@ exports.loginUser = async (req, res) => {
       redirect: "/dashboard.html",
     });
   } catch (error) {
-    console.error("Login Error:", error);
+    console.error("🔥 Login Error:", error);
     res.status(500).json({ message: "Server error during login" });
   }
 };
@@ -69,7 +98,8 @@ exports.verifyToken = async (req, res) => {
       message: "Token valid",
       user: req.user,
     });
-  } catch {
+  } catch (error) {
+    console.error("Verify Token Error:", error);
     res.status(401).json({ success: false, message: "Invalid token" });
   }
 };
@@ -78,11 +108,13 @@ exports.verifyToken = async (req, res) => {
 exports.getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    // 🪄 Convert relative path to full URL
     const BASE_URL =
       process.env.BASE_URL || "https://mindsync-backend-c7v9.onrender.com";
+
     if (user.profilePic && !user.profilePic.startsWith("http")) {
       user.profilePic = `${BASE_URL}${user.profilePic}`;
     }
@@ -116,11 +148,13 @@ exports.updateUserProfile = async (req, res) => {
       new: true,
     }).select("-password");
 
-    if (!updatedUser)
+    if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
+    }
 
     const BASE_URL =
       process.env.BASE_URL || "https://mindsync-backend-c7v9.onrender.com";
+
     if (updatedUser.profilePic && !updatedUser.profilePic.startsWith("http")) {
       updatedUser.profilePic = `${BASE_URL}${updatedUser.profilePic}`;
     }
@@ -136,7 +170,7 @@ exports.updateUserProfile = async (req, res) => {
   }
 };
 
-// 🧾 SETUP PROFILE (after signup) → redirect to dashboard
+// 🧾 SETUP PROFILE (after signup)
 exports.setupUserProfile = async (req, res) => {
   try {
     const { bio, location, phone, age, gender, goal } = req.body;
@@ -150,11 +184,13 @@ exports.setupUserProfile = async (req, res) => {
       new: true,
     }).select("-password");
 
-    if (!updatedUser)
+    if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
+    }
 
     const BASE_URL =
       process.env.BASE_URL || "https://mindsync-backend-c7v9.onrender.com";
+
     if (updatedUser.profilePic && !updatedUser.profilePic.startsWith("http")) {
       updatedUser.profilePic = `${BASE_URL}${updatedUser.profilePic}`;
     }
