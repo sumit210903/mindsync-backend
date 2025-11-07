@@ -1,3 +1,4 @@
+// controllers/dashboardController.js
 const User = require("../models/User");
 
 /**
@@ -75,4 +76,32 @@ const getUserDashboard = async (req, res) => {
   }
 };
 
-module.exports = { getUserDashboard };
+/**
+ * @desc   Simple version (for testing auth)
+ * @route  GET /api/dashboard/simple
+ * @access Private
+ */
+const getUserDashboardSimple = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        name: user.name,
+        email: user.email,
+        profilePic: user.profilePic || "",
+        message: "Welcome to your dashboard!",
+      },
+    });
+  } catch (error) {
+    console.error("Dashboard error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ✅ Export both
+module.exports = { getUserDashboard, getUserDashboardSimple };
