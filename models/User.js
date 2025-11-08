@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+// 🧩 Define User Schema
 const userSchema = new mongoose.Schema(
   {
     // 👤 Basic Account Info
@@ -98,4 +99,5 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
-module.exports = mongoose.model("User", userSchema);
+// 🚀 Export (Prevents OverwriteModelError)
+module.exports = mongoose.models.User || mongoose.model("User", userSchema);
