@@ -77,8 +77,9 @@ const userSchema = new mongoose.Schema(
 // 🧠 Hash password before saving (if modified)
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
+
   try {
-    // ✅ bcryptjs automatically handles salt generation
+    // ✅ bcryptjs automatically handles salt generation internally
     this.password = await bcrypt.hash(this.password, 10);
     next();
   } catch (err) {
@@ -91,7 +92,7 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// ✅ Hide sensitive fields in responses
+// ✅ Hide sensitive fields in API responses
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
