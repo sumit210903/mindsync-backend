@@ -78,9 +78,8 @@ const userSchema = new mongoose.Schema(
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   try {
-    // ✅ Use genSaltSync for bcryptjs to avoid "genSalt is not a function" error
-    const salt = bcrypt.genSaltSync(10);
-    this.password = await bcrypt.hash(this.password, salt);
+    // ✅ bcryptjs automatically handles salt generation
+    this.password = await bcrypt.hash(this.password, 10);
     next();
   } catch (err) {
     next(err);
@@ -100,5 +99,5 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
-// 🚀 Export (Prevents OverwriteModelError)
+// 🚀 Export model (Prevents OverwriteModelError)
 module.exports = mongoose.models.User || mongoose.model("User", userSchema);

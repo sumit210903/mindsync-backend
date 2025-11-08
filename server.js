@@ -7,16 +7,19 @@ const connectDB = require("./config/db_connect");
 const userRoutes = require("./routes/userRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 
+// ✅ Load environment variables
 dotenv.config();
+
+// ✅ Connect MongoDB
 connectDB();
 
 const app = express();
 
-// ✅ Middleware first
+// ✅ Middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Allowed origins
+// ✅ Allowed origins (Frontend URLs)
 const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
@@ -27,10 +30,11 @@ const allowedOrigins = [
   "https://sumit210903.github.io/mindsync-frontend",
 ];
 
-// ✅ CORS
+// ✅ CORS Configuration
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps, Postman)
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -44,22 +48,28 @@ app.use(
   })
 );
 
+// ✅ Optional: Handle preflight requests globally (CORS)
+app.options("*", cors());
+
 // ✅ Logger
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.originalUrl}`);
   next();
 });
 
-// ✅ Routes
+// ✅ Serve static uploads folder
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// ✅ API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
+// ✅ Root route
 app.get("/", (req, res) => {
   res.send("🌿 MindSync Backend API is running successfully!");
 });
 
-// ✅ Global Error Handler
+// ✅ Global Error Handler (must be last)
 app.use((err, req, res, next) => {
   console.error("🔥 Error caught:", err.message);
   res.status(err.statusCode || 500).json({
