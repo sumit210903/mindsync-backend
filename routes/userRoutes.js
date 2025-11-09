@@ -1,3 +1,5 @@
+// backend/routes/userRoutes.js
+
 const express = require("express");
 const {
   signupUser,
@@ -72,16 +74,17 @@ router.post(
  */
 router.get("/profile/basic", protect, async (req, res) => {
   try {
-    const user = req.user; // from protect middleware
+    const user = req.user;
     res.status(200).json({
       success: true,
       user: {
-        name: user.name,
-        email: user.email,
-        photo: user.photo || "",
+        name: user?.name,
+        email: user?.email,
+        photo: user?.photo || user?.profilePic || "",
       },
     });
   } catch (error) {
+    console.error("Basic Profile Error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch basic user data",

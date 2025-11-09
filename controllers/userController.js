@@ -216,3 +216,17 @@ exports.setupUserProfile = async (req, res) => {
     res.status(500).json({ message: "Server error during setup" });
   }
 };
+
+// 🔍 VERIFY TOKEN
+exports.verifyToken = async (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      message: "Token valid",
+      user: req.user,
+    });
+  } catch (error) {
+    console.error("Verify Token Error:", error);
+    res.status(401).json({ success: false, message: "Invalid token" });
+  }
+};
