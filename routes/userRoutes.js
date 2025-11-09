@@ -36,7 +36,7 @@ router.get("/verify", protect, verifyToken);
 
 /**
  * @route   GET /api/users/profile
- * @desc    Get logged-in user's profile
+ * @desc    Get logged-in user's full profile
  * @access  Private
  */
 router.get("/profile", protect, getUserProfile);
@@ -64,6 +64,31 @@ router.post(
   upload.single("profilePic"),
   setupUserProfile
 );
+
+/**
+ * @route   GET /api/users/profile/basic
+ * @desc    Return basic user info (name, email, photo)
+ * @access  Private
+ */
+router.get("/profile/basic", protect, async (req, res) => {
+  try {
+    const user = req.user; // from protect middleware
+    res.status(200).json({
+      success: true,
+      user: {
+        name: user.name,
+        email: user.email,
+        photo: user.photo || "",
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch basic user data",
+      error: error.message,
+    });
+  }
+});
 
 /**
  * @route   GET /api/users

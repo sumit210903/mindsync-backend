@@ -26,7 +26,6 @@ exports.signupUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // ✅ Let Mongoose pre-save hook hash the password automatically
     const user = await User.create({ name, email, password });
 
     console.log("✅ New user created:", user.email);
@@ -53,19 +52,16 @@ exports.loginUser = async (req, res) => {
       passwordReceived: !!password,
     });
 
-    // ✅ Validate input
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
-    // ✅ Explicitly include password since it's select: false in schema
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
       console.warn("⚠️ User not found for email:", email);
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // ✅ Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       console.warn("⚠️ Invalid password for:", email);
@@ -86,17 +82,35 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-// 🔍 VERIFY TOKEN
-exports.verifyToken = async (req, res) => {
+// ✅ VERIFY TOKEN & RETURN USER DETAILS
+exports.verifyUser = async (req, res) => {
   try {
-    res.status(200).json({
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ success: false, message: "No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id).select("name email photo");
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({
       success: true,
-      message: "Token valid",
-      user: req.user,
+      user: {
+        name: user.name,
+        email: user.email,
+        photo: user.photo || "https://res.cloudinary.com/.../profile.png",
+      },
     });
   } catch (error) {
-    console.error("Verify Token Error:", error);
-    res.status(401).json({ success: false, message: "Invalid token" });
+    console.error("Verify Error:", error);
+    res.status(500).json({ success: false, message: "Server error during verification" });
   }
 };
 
@@ -111,7 +125,6 @@ exports.getUserProfile = async (req, res) => {
     const BASE_URL =
       process.env.BASE_URL || "https://mindsync-backend-c7v9.onrender.com";
 
-    // ✅ Convert relative path to absolute URL
     if (user.profilePic && !user.profilePic.startsWith("http")) {
       user.profilePic = `${BASE_URL}${user.profilePic}`;
     }
