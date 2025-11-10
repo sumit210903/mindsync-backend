@@ -7,7 +7,8 @@ const {
   getUserProfile,
   updateUserProfile,
   setupUserProfile,
-  verifyToken,
+  verifyUser,      // Added verifyUser endpoint for frontend token checks
+  verifyToken,     // For backend middleware validation
 } = require("../controllers/userController");
 
 const protect = require("../middleware/Auth");
@@ -31,10 +32,17 @@ router.post("/login", loginUser);
 
 /**
  * @route   GET /api/users/verify
- * @desc    Verify JWT token validity
+ * @desc    Verify JWT token validity (used by frontend)
  * @access  Private
  */
-router.get("/verify", protect, verifyToken);
+router.get("/verify", verifyUser);
+
+/**
+ * @route   GET /api/users/token
+ * @desc    Check token validity using middleware (server-side)
+ * @access  Private
+ */
+router.get("/token", protect, verifyToken);
 
 /**
  * @route   GET /api/users/profile
@@ -48,24 +56,14 @@ router.get("/profile", protect, getUserProfile);
  * @desc    Update user's profile details (with optional image upload)
  * @access  Private
  */
-router.put(
-  "/profile",
-  protect,
-  upload.single("profilePic"),
-  updateUserProfile
-);
+router.put("/profile", protect, upload.single("profilePic"), updateUserProfile);
 
 /**
  * @route   POST /api/users/profile-setup
  * @desc    Initial or detailed profile setup (after signup)
  * @access  Private
  */
-router.post(
-  "/profile-setup",
-  protect,
-  upload.single("profilePic"),
-  setupUserProfile
-);
+router.post("/profile-setup", protect, upload.single("profilePic"), setupUserProfile);
 
 /**
  * @route   GET /api/users/profile/basic
@@ -75,12 +73,23 @@ router.post(
 router.get("/profile/basic", protect, async (req, res) => {
   try {
     const user = req.user;
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const BASE_URL = process.env.BASE_URL || "https://mindsync-backend-c7v9.onrender.com";
+    const photo =
+      user.photo?.startsWith("http") || user.profilePic?.startsWith("http")
+        ? user.photo || user.profilePic
+        : `${BASE_URL}${user.photo || user.profilePic || ""}`;
+
     res.status(200).json({
       success: true,
       user: {
-        name: user?.name,
-        email: user?.email,
-        photo: user?.photo || user?.profilePic || "",
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        photo: photo || "",
       },
     });
   } catch (error) {
